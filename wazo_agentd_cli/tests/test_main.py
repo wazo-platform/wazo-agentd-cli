@@ -3,7 +3,35 @@
 
 from unittest.mock import Mock, patch
 
-from wazo_agentd_cli.main import WazoAgentdCLI
+from wazo_agentd_cli.main import WazoAgentdCLI, _expand_deprecated_command_flag
+
+
+class TestExpandCommandFlag:
+    def test_no_flag(self):
+        assert _expand_deprecated_command_flag(['status']) == ['status']
+
+    def test_short_flag(self):
+        result = _expand_deprecated_command_flag(['-c', 'login 1001 1001 default'])
+        assert result == ['login', '1001', '1001', 'default']
+
+    def test_long_flag(self):
+        result = _expand_deprecated_command_flag(['--command', 'status 1001'])
+        assert result == ['status', '1001']
+
+    def test_flag_with_other_args(self):
+        result = _expand_deprecated_command_flag(['--host', 'myhost', '-c', 'status'])
+        assert result == ['--host', 'myhost', 'status']
+
+    def test_long_flag_equals_format(self):
+        result = _expand_deprecated_command_flag(['--command=status 1001'])
+        assert result == ['status', '1001']
+
+    def test_short_flag_equals_format(self):
+        result = _expand_deprecated_command_flag(['-c=status 1001'])
+        assert result == ['status', '1001']
+
+    def test_flag_without_value(self):
+        assert _expand_deprecated_command_flag(['-c']) == ['-c']
 
 
 class TestClientProperty:
