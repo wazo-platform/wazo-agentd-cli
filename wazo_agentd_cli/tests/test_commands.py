@@ -9,35 +9,7 @@ from wazo_agentd_cli.commands import (
     LogoffCommand,
     RelogAllCommand,
     StatusCommand,
-    _print_agent_status,
 )
-
-
-class TestPrintAgentStatus:
-    def test_logged_agent(self, capsys):
-        status = Mock(
-            number='1001',
-            id=42,
-            logged=True,
-            extension='1001',
-            context='default',
-            state_interface='SIP/abc',
-        )
-        _print_agent_status(status)
-        output = capsys.readouterr().out
-        assert output == (
-            'Agent/1001 (ID 42)\n'
-            '    logged: True\n'
-            '    extension: 1001\n'
-            '    context: default\n'
-            '    state interface: SIP/abc\n'
-        )
-
-    def test_not_logged_agent(self, capsys):
-        status = Mock(number='1002', id=43, logged=False)
-        _print_agent_status(status)
-        output = capsys.readouterr().out
-        assert output == ('Agent/1002 (ID 43)\n' '    logged: False\n')
 
 
 class TestLoginCommand:
@@ -90,17 +62,70 @@ class TestRelogAllCommand:
 
 
 class TestStatusCommand:
-    def test_single_agent(self):
+    def _make_status(self, number, agent_id, logged, **kwargs):
+        return Mock(
+            number=number,
+            id=agent_id,
+            logged=logged,
+            extension=kwargs.get('extension', ''),
+            context=kwargs.get('context', ''),
+            state_interface=kwargs.get('state_interface', ''),
+        )
+
+    def test_single_agent_returns_columns_and_row(self):
         app = Mock()
+        status = self._make_status(
+            '1001',
+            42,
+            True,
+            extension='1001',
+            context='default',
+            state_interface='SIP/abc',
+        )
+        app.client.agents.get_agent_status_by_number.return_value = status
         cmd = StatusCommand(app, None)
         parsed_args = Namespace(agent_number='1001')
-        cmd.take_action(parsed_args)
-        app.client.agents.get_agent_status_by_number.assert_called_once_with('1001')
 
-    def test_all_agents(self):
+        columns, rows = cmd.take_action(parsed_args)
+
+        assert columns == (
+            'Number',
+            'ID',
+            'Logged',
+            'Extension',
+            'Context',
+            'State Interface',
+        )
+        assert rows == [('1001', 42, True, '1001', 'default', 'SIP/abc')]
+
+    def test_not_logged_agent_has_empty_fields(self):
         app = Mock()
-        app.client.agents.get_agent_statuses.return_value = []
+        status = self._make_status('1002', 43, False)
+        app.client.agents.get_agent_status_by_number.return_value = status
+        cmd = StatusCommand(app, None)
+        parsed_args = Namespace(agent_number='1002')
+
+        _, rows = cmd.take_action(parsed_args)
+
+        assert rows == [('1002', 43, False, '', '', '')]
+
+    def test_all_agents_sorted_by_number(self):
+        app = Mock()
+        s1 = self._make_status('1002', 43, False)
+        s2 = self._make_status(
+            '1001',
+            42,
+            True,
+            extension='1001',
+            context='default',
+            state_interface='SIP/abc',
+        )
+        app.client.agents.get_agent_statuses.return_value = [s1, s2]
         cmd = StatusCommand(app, None)
         parsed_args = Namespace(agent_number=None)
-        cmd.take_action(parsed_args)
+
+        _, rows = cmd.take_action(parsed_args)
+
+        assert rows[0][0] == '1001'
+        assert rows[1][0] == '1002'
         app.client.agents.get_agent_statuses.assert_called_once_with(recurse=True)

@@ -4,6 +4,7 @@
 from operator import attrgetter
 
 from cliff.command import Command
+from cliff.lister import Lister
 
 
 class AddAgentToQueueCommand(Command):
@@ -109,8 +110,14 @@ class UnpauseCommand(Command):
         self.app.client.agents.unpause_agent_by_number(parsed_args.agent_number)
 
 
-class StatusCommand(Command):
+class StatusCommand(Lister):
     """Get status of agent"""
+
+    COLUMNS = ('Number', 'ID', 'Logged', 'Extension', 'Context', 'State Interface')
+
+    @property
+    def formatter_default(self):
+        return 'legacy'
 
     def get_parser(self, *args, **kwargs):
         parser = super().get_parser(*args, **kwargs)
@@ -122,19 +129,21 @@ class StatusCommand(Command):
     def take_action(self, parsed_args):
         if parsed_args.agent_number is None:
             agent_statuses = self.app.client.agents.get_agent_statuses(recurse=True)
-            for agent_status in sorted(agent_statuses, key=attrgetter('number')):
-                _print_agent_status(agent_status)
+            statuses = sorted(agent_statuses, key=attrgetter('number'))
         else:
-            agent_status = self.app.client.agents.get_agent_status_by_number(
+            status = self.app.client.agents.get_agent_status_by_number(
                 parsed_args.agent_number
             )
-            _print_agent_status(agent_status)
-
-
-def _print_agent_status(agent_status):
-    print(f'Agent/{agent_status.number} (ID {agent_status.id})')
-    print(f'    logged: {agent_status.logged}')
-    if agent_status.logged:
-        print(f'    extension: {agent_status.extension}')
-        print(f'    context: {agent_status.context}')
-        print(f'    state interface: {agent_status.state_interface}')
+            statuses = [status]
+        rows = [
+            (
+                s.number,
+                s.id,
+                s.logged,
+                s.extension if s.logged else '',
+                s.context if s.logged else '',
+                s.state_interface if s.logged else '',
+            )
+            for s in statuses
+        ]
+        return self.COLUMNS, rows
