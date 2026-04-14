@@ -1,6 +1,11 @@
 # Copyright 2015-2026 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from __future__ import annotations
+
+from argparse import Namespace
+from typing import Any
+
 from xivo.chain_map import ChainMap
 from xivo.config_helper import parse_config_file, read_config_file_hierarchy
 
@@ -23,7 +28,7 @@ _DEFAULT_CONFIG = {
 }
 
 
-def _args_to_dict(parsed_args):
+def _args_to_dict(parsed_args: Namespace) -> dict[str, Any]:
     agentd_config = {}
     host = getattr(parsed_args, 'host', None)
     if host:
@@ -43,7 +48,7 @@ def _args_to_dict(parsed_args):
     return config
 
 
-def _load_key_file(config):
+def _load_key_file(config: ChainMap) -> dict[str, dict[str, str]]:
     key_file = parse_config_file(config['auth']['key_file'])
     return {
         'auth': {
@@ -53,7 +58,7 @@ def _load_key_file(config):
     }
 
 
-def build(parsed_args):
+def build(parsed_args: Namespace) -> ChainMap:
     cli_config = _args_to_dict(parsed_args)
     file_config = read_config_file_hierarchy(ChainMap(cli_config, _DEFAULT_CONFIG))
     key_config = _load_key_file(ChainMap(cli_config, file_config, _DEFAULT_CONFIG))

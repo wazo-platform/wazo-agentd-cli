@@ -9,7 +9,7 @@ COLUMNS = ('Number', 'ID', 'Logged', 'Extension', 'Context', 'State Interface')
 
 
 class TestLegacyAgentStatusFormatter:
-    def test_logged_agent(self):
+    def test_logged_agent(self) -> None:
         formatter = LegacyAgentStatusFormatter()
         data = [('1001', 42, True, '1001', 'default', 'SIP/abc')]
         stdout = StringIO()
@@ -24,7 +24,7 @@ class TestLegacyAgentStatusFormatter:
             '    state interface: SIP/abc\n'
         )
 
-    def test_not_logged_agent(self):
+    def test_not_logged_agent(self) -> None:
         formatter = LegacyAgentStatusFormatter()
         data = [('1002', 43, False, '', '', '')]
         stdout = StringIO()
@@ -33,7 +33,7 @@ class TestLegacyAgentStatusFormatter:
 
         assert stdout.getvalue() == ('Agent/1002 (ID 43)\n' '    logged: False\n')
 
-    def test_multiple_agents(self):
+    def test_multiple_agents(self) -> None:
         formatter = LegacyAgentStatusFormatter()
         data = [
             ('1001', 42, True, '1001', 'default', 'SIP/abc'),

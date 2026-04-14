@@ -13,7 +13,7 @@ from wazo_agentd_cli.commands import (
 
 
 class TestLoginCommand:
-    def test_take_action(self):
+    def test_take_action(self) -> None:
         app = Mock()
         cmd = LoginCommand(app, None)
         parsed_args = Namespace(
@@ -26,14 +26,14 @@ class TestLoginCommand:
 
 
 class TestLogoffCommand:
-    def test_logoff_by_number(self):
+    def test_logoff_by_number(self) -> None:
         app = Mock()
         cmd = LogoffCommand(app, None)
         parsed_args = Namespace(agent_number='1001')
         cmd.take_action(parsed_args)
         app.client.agents.logoff_agent_by_number.assert_called_once_with('1001')
 
-    def test_logoff_all(self):
+    def test_logoff_all(self) -> None:
         app = Mock()
         cmd = LogoffCommand(app, None)
         parsed_args = Namespace(agent_number='all')
@@ -42,7 +42,7 @@ class TestLogoffCommand:
 
 
 class TestRelogAllCommand:
-    def test_with_timeout(self):
+    def test_with_timeout(self) -> None:
         app = Mock()
         cmd = RelogAllCommand(app, None)
         parsed_args = Namespace(timeout=30)
@@ -51,7 +51,7 @@ class TestRelogAllCommand:
             recurse=True, timeout=30
         )
 
-    def test_without_timeout(self):
+    def test_without_timeout(self) -> None:
         app = Mock()
         cmd = RelogAllCommand(app, None)
         parsed_args = Namespace(timeout=None)
@@ -62,7 +62,9 @@ class TestRelogAllCommand:
 
 
 class TestStatusCommand:
-    def _make_status(self, number, agent_id, logged, **kwargs):
+    def _make_status(
+        self, number: str, agent_id: int, logged: bool, **kwargs: str
+    ) -> Mock:
         return Mock(
             number=number,
             id=agent_id,
@@ -72,7 +74,7 @@ class TestStatusCommand:
             state_interface=kwargs.get('state_interface', ''),
         )
 
-    def test_single_agent_returns_columns_and_row(self):
+    def test_single_agent_returns_columns_and_row(self) -> None:
         app = Mock()
         status = self._make_status(
             '1001',
@@ -98,7 +100,7 @@ class TestStatusCommand:
         )
         assert rows == [('1001', 42, True, '1001', 'default', 'SIP/abc')]
 
-    def test_not_logged_agent_has_empty_fields(self):
+    def test_not_logged_agent_has_empty_fields(self) -> None:
         app = Mock()
         status = self._make_status('1002', 43, False)
         app.client.agents.get_agent_status_by_number.return_value = status
@@ -109,7 +111,7 @@ class TestStatusCommand:
 
         assert rows == [('1002', 43, False, '', '', '')]
 
-    def test_all_agents_sorted_by_number(self):
+    def test_all_agents_sorted_by_number(self) -> None:
         app = Mock()
         s1 = self._make_status('1002', 43, False)
         s2 = self._make_status(
