@@ -2,6 +2,7 @@
 # Copyright 2015-2026 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+
 from setuptools import find_packages, setup
 
 setup(
@@ -12,5 +13,19 @@ setup(
     author_email='dev.wazo@gmail.com',
     url='http://wazo.community',
     packages=find_packages(),
-    scripts=['bin/wazo-agentd-cli'],
+    entry_points={
+        'console_scripts': [
+            'wazo-agentd-cli = wazo_agentd_cli.main:main',
+        ],
+        'wazo_agentd_cli.commands': [
+            'add = wazo_agentd_cli.commands:AddAgentToQueueCommand',
+            'remove = wazo_agentd_cli.commands:RemoveAgentFromQueueCommand',
+            'login = wazo_agentd_cli.commands:LoginCommand',
+            'logoff = wazo_agentd_cli.commands:LogoffCommand',
+            'relog_all = wazo_agentd_cli.commands:RelogAllCommand',
+            'pause = wazo_agentd_cli.commands:PauseCommand',
+            'unpause = wazo_agentd_cli.commands:UnpauseCommand',
+            'status = wazo_agentd_cli.commands:StatusCommand',
+        ],
+    },
 )
