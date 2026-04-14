@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2015-2024 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2015-2026 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from setuptools import find_packages, setup
@@ -12,5 +12,5 @@ setup(
     author_email='dev.wazo@gmail.com',
     url='http://wazo.community',
     packages=find_packages(),
-    scripts=['bin/wazo-agentd-cli', 'bin/xivo-agentd-cli'],
+    scripts=['bin/wazo-agentd-cli'],
 )
