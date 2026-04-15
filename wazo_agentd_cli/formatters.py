@@ -38,3 +38,16 @@ class LegacyAgentStatusFormatter(ListFormatter):
                 stdout.write(
                     f'    state interface: {row[indices["state_interface"]]}\n'
                 )
+            queues = row[indices['queues']]
+            if queues:
+                stdout.write('    queues:\n')
+                for queue in queues:
+                    q_id = queue.get('id', '')
+                    name = queue.get('name', '')
+                    q_logged = queue.get('logged', False)
+                    q_paused = queue.get('paused', False)
+                    stdout.write(f'        {name} (ID {q_id}, logged: {q_logged}')
+                    if q_paused:
+                        reason = queue.get('paused_reason') or ''
+                        stdout.write(f', paused: {reason}' if reason else ', paused')
+                    stdout.write(')\n')
