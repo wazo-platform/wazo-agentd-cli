@@ -5,7 +5,7 @@ from io import StringIO
 
 from wazo_agentd_cli.formatters import LegacyAgentStatusFormatter
 
-COLUMNS = ('Number', 'ID', 'Logged', 'Extension', 'Context', 'State Interface')
+COLUMNS = ('number', 'id', 'logged', 'extension', 'context', 'state_interface')
 
 
 class TestLegacyAgentStatusFormatter:

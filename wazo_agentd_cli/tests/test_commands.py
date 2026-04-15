@@ -63,15 +63,21 @@ class TestRelogAllCommand:
 
 class TestStatusCommand:
     def _make_status(
-        self, number: str, agent_id: int, logged: bool, **kwargs: str
+        self,
+        number: str,
+        agent_id: int,
+        logged: bool,
+        extension: str = '',
+        context: str = '',
+        state_interface: str = '',
     ) -> Mock:
         return Mock(
             number=number,
             id=agent_id,
             logged=logged,
-            extension=kwargs.get('extension', ''),
-            context=kwargs.get('context', ''),
-            state_interface=kwargs.get('state_interface', ''),
+            extension=extension,
+            context=context,
+            state_interface=state_interface,
         )
 
     def test_single_agent_returns_columns_and_row(self) -> None:
@@ -91,12 +97,12 @@ class TestStatusCommand:
         columns, rows = cmd.take_action(parsed_args)
 
         assert columns == (
-            'Number',
-            'ID',
-            'Logged',
-            'Extension',
-            'Context',
-            'State Interface',
+            'number',
+            'id',
+            'logged',
+            'extension',
+            'context',
+            'state_interface',
         )
         assert rows == [('1001', 42, True, '1001', 'default', 'SIP/abc')]
 

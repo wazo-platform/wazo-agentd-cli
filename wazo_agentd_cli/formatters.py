@@ -27,14 +27,14 @@ class LegacyAgentStatusFormatter(ListFormatter):
         indices = {name: i for i, name in enumerate(column_names)}
         for row in data:
             row = tuple(row)
-            number = row[indices['Number']]
-            agent_id = row[indices['ID']]
-            logged = row[indices['Logged']]
+            number = row[indices['number']]
+            agent_id = row[indices['id']]
+            logged = row[indices['logged']]
             stdout.write(f'Agent/{number} (ID {agent_id})\n')
             stdout.write(f'    logged: {logged}\n')
             if logged:
-                stdout.write(f'    extension: {row[indices["Extension"]]}\n')
-                stdout.write(f'    context: {row[indices["Context"]]}\n')
+                stdout.write(f'    extension: {row[indices["extension"]]}\n')
+                stdout.write(f'    context: {row[indices["context"]]}\n')
                 stdout.write(
-                    f'    state interface: {row[indices["State Interface"]]}\n'
+                    f'    state interface: {row[indices["state_interface"]]}\n'
                 )

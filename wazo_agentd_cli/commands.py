@@ -118,7 +118,14 @@ class UnpauseCommand(Command):
 class StatusCommand(Lister):
     """Get status of agent"""
 
-    COLUMNS = ('Number', 'ID', 'Logged', 'Extension', 'Context', 'State Interface')
+    COLUMNS = (
+        'number',
+        'id',
+        'logged',
+        'extension',
+        'context',
+        'state_interface',
+    )
 
     @property
     def formatter_default(self) -> str:
