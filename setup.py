@@ -28,6 +28,8 @@ setup(
             'relog_all = wazo_agentd_cli.commands:RelogAllCommand',
             'pause = wazo_agentd_cli.commands:PauseCommand',
             'unpause = wazo_agentd_cli.commands:UnpauseCommand',
+            'queue_login = wazo_agentd_cli.commands:QueueLoginCommand',
+            'queue_logoff = wazo_agentd_cli.commands:QueueLogoffCommand',
             'status = wazo_agentd_cli.commands:StatusCommand',
         ],
     },
