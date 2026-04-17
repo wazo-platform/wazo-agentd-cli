@@ -1,230 +1,112 @@
-# Copyright 2012-2024 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2012-2026 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from __future__ import annotations
+
+import argparse
+import logging
 import sys
-from operator import attrgetter
 
-import wazo_agentd_client
-import wazo_auth_client
-from xivo.cli import BaseCommand, Interpreter, UsageError
-from xivo.token_renewer import TokenRenewer
+from cliff.app import App
+from cliff.command import Command
+from cliff.commandmanager import CommandManager
+from wazo_agentd_client import Client as AgentdClient
+from wazo_auth_client import Client as AuthClient
 
-from wazo_agentd_cli.config import load as load_config
+from . import config
 
-
-def main():
-    config = load_config(sys.argv[1:])
-
-    token_renewer = TokenRenewer(_new_auth_client(config), expiration=600)
-    agent_client = _new_agent_client(config)
-
-    interpreter = Interpreter(
-        prompt='wazo-agentd-cli> ', history_file='~/.wazo_agentd_cli_history'
-    )
-    interpreter.add_command('add', AddAgentToQueueCommand(agent_client))
-    interpreter.add_command('remove', RemoveAgentFromQueueCommand(agent_client))
-    interpreter.add_command('login', LoginCommand(agent_client))
-    interpreter.add_command('logoff', LogoffCommand(agent_client))
-    interpreter.add_command('relog all', RelogAllCommand(agent_client))
-    interpreter.add_command('pause', PauseCommand(agent_client))
-    interpreter.add_command('unpause', UnpauseCommand(agent_client))
-    interpreter.add_command('status', StatusCommand(agent_client))
-
-    token_renewer.subscribe_to_token_change(agent_client.set_token)
-    with token_renewer:
-        if config.get('command'):
-            interpreter.execute_command_line(config['command'])
-        else:
-            interpreter.loop()
+logging.getLogger('requests').setLevel(logging.ERROR)
 
 
-def _new_agent_client(config):
-    return wazo_agentd_client.Client(**config['agentd'])
+class WazoAgentdCLI(App):
+    DEFAULT_VERBOSE_LEVEL = 0
 
-
-def _new_auth_client(config):
-    auth_config = dict(config['auth'])
-    username = auth_config.pop('service_id')
-    password = auth_config.pop('service_key')
-    del auth_config['key_file']
-    return wazo_auth_client.Client(username=username, password=password, **auth_config)
-
-
-class BaseAgentClientCommand(BaseCommand):
-    def __init__(self, agent_client):
-        BaseCommand.__init__(self)
-        self._agent_client = agent_client
-
-    def execute(self):
-        raise NotImplementedError()
-
-
-class AddAgentToQueueCommand(BaseAgentClientCommand):
-
-    help = 'Add agent to queue'
-    usage = '<agent_id> <queue_id>'
-
-    def prepare(self, command_args):
-        try:
-            agent_id = int(command_args[0])
-            queue_id = int(command_args[1])
-            return (agent_id, queue_id)
-        except Exception:
-            raise UsageError()
-
-    def execute(self, agent_id, queue_id):
-        self._agent_client.agents.add_agent_to_queue(agent_id, queue_id)
-
-
-class RemoveAgentFromQueueCommand(BaseAgentClientCommand):
-
-    help = 'Remove agent from queue'
-    usage = '<agent_id> <queue_id>'
-
-    def prepare(self, command_args):
-        try:
-            agent_id = int(command_args[0])
-            queue_id = int(command_args[1])
-            return (agent_id, queue_id)
-        except Exception:
-            raise UsageError()
-
-    def execute(self, agent_id, queue_id):
-        self._agent_client.agents.remove_agent_from_queue(agent_id, queue_id)
-
-
-class LoginCommand(BaseAgentClientCommand):
-
-    help = 'Login agent'
-    usage = '<agent_number> <extension> <context>'
-
-    def prepare(self, command_args):
-        try:
-            agent_number = command_args[0]
-            extension = command_args[1]
-            context = command_args[2]
-            return (agent_number, extension, context)
-        except Exception:
-            raise UsageError()
-
-    def execute(self, agent_number, extension, context):
-        self._agent_client.agents.login_agent_by_number(
-            agent_number, extension, context
+    def __init__(self) -> None:
+        super().__init__(
+            description='A CLI for the wazo-agentd service',
+            command_manager=CommandManager('wazo_agentd_cli.commands'),
+            version='0.0.1',
         )
+        self._current_token: str | None = None
+        self._remove_token: bool = False
+        self._client: AgentdClient | None = None
+        self._auth_client: AuthClient | None = None
+
+    def build_option_parser(self, *args: str, **kwargs: str) -> argparse.ArgumentParser:
+        parser = super().build_option_parser(*args, **kwargs)
+        parser.add_argument('--config-file', help='Path to the configuration file')
+        parser.add_argument('--host', help='Hostname of the wazo-agentd server')
+        parser.add_argument('--port', type=int, help='Port of the wazo-agentd server')
+        return parser
+
+    @property
+    def client(self) -> AgentdClient:
+        if not self._client:
+            self._client = AgentdClient(**self._agentd_config)
+
+        if not self._current_token:
+            auth_config = dict(self._auth_config)
+            username = auth_config.pop('service_id')
+            password = auth_config.pop('service_key')
+            auth_config.pop('key_file', None)
+            self._auth_client = AuthClient(
+                username=username, password=password, **auth_config
+            )
+            token_data = self._auth_client.token.new(expiration=3600)
+            self._current_token = token_data['token']
+            self._remove_token = True
+
+        self._client.set_token(self._current_token)
+        return self._client
+
+    def initialize_app(self, argv: list[str]) -> None:
+        self.LOG.debug('Wazo Agentd CLI')
+        self.LOG.debug('options=%s', self.options)
+        conf = config.build(self.options)
+        self.LOG.debug('Starting with config: %s', conf)
+        self._auth_config = dict(conf['auth'])
+        self._agentd_config = dict(conf['agentd'])
+
+    def clean_up(self, cmd: Command, result: int | None, err: Exception | None) -> None:
+        if err:
+            self.LOG.debug('got an error: %s', err)
+
+        if self._remove_token and self._auth_client:
+            self._auth_client.token.revoke(self._current_token)
+            self._current_token = None
+            self._remove_token = False
 
 
-class LogoffCommand(BaseAgentClientCommand):
+def _expand_deprecated_command_flag(argv: list[str]) -> list[str]:
+    """Support legacy -c/--command flag by expanding its value into argv.
 
-    help = 'Logoff agent'
-    usage = '(<agent_number> | all)'
-
-    def prepare(self, command_args):
-        try:
-            agent_number = command_args[0]
-            return (agent_number,)
-        except Exception:
-            raise UsageError()
-
-    def execute(self, agent_number):
-        if agent_number == 'all':
-            self._execute_all()
-        else:
-            self._execute(agent_number)
-
-    def _execute_all(self):
-        self._agent_client.agents.logoff_all_agents()
-
-    def _execute(self, agent_number):
-        self._agent_client.agents.logoff_agent_by_number(agent_number)
-
-
-class RelogAllCommand(BaseAgentClientCommand):
-
-    help = 'Relog all currently logged agents'
-    usage = '[--timeout <timeout>]'
-
-    def prepare(self, command_args):
-        try:
-            timeout_flag = len(command_args) > 0 and command_args[0] == '--timeout'
-            timeout = int(command_args[1]) if timeout_flag else None
-            return (timeout,)
-        except Exception:
-            raise UsageError()
-
-    def execute(self, timeout):
-        self._agent_client.agents.relog_all_agents(recurse=True, timeout=timeout)
+    e.g. ['-c', 'login 1001 ext ctx'] -> ['login', '1001', 'ext', 'ctx']
+    """
+    argv = list(argv)
+    for i, arg in enumerate(argv):
+        for flag in ('-c', '--command'):
+            if arg == flag and i + 1 < len(argv):
+                command_str = argv[i + 1]
+                argv[i : i + 2] = command_str.split()
+            elif arg.startswith(f'{flag}='):
+                command_str = arg[len(flag) + 1 :]
+                argv[i : i + 1] = command_str.split()
+            else:
+                continue
+            print(
+                f'Warning: {flag} is deprecated, use: wazo-agentd-cli {command_str}',
+                file=sys.stderr,
+            )
+            return argv
+    return argv
 
 
-class PauseCommand(BaseAgentClientCommand):
-
-    help = 'Pause agent'
-    usage = '<agent_number>'
-
-    def prepare(self, command_args):
-        try:
-            agent_number = command_args[0]
-            return (agent_number,)
-        except Exception:
-            raise UsageError()
-
-    def execute(self, agent_number):
-        self._agent_client.agents.pause_agent_by_number(agent_number)
-
-
-class UnpauseCommand(BaseAgentClientCommand):
-
-    help = 'Unpause agent'
-    usage = '<agent_number>'
-
-    def prepare(self, command_args):
-        try:
-            agent_number = command_args[0]
-            return (agent_number,)
-        except Exception:
-            raise UsageError()
-
-    def execute(self, agent_number):
-        self._agent_client.agents.unpause_agent_by_number(agent_number)
-
-
-class StatusCommand(BaseAgentClientCommand):
-
-    help = 'Get status of agent'
-    usage = '[<agent_number>]'
-
-    def prepare(self, command_args):
-        if command_args:
-            agent_number = command_args[0]
-        else:
-            agent_number = None
-        return (agent_number,)
-
-    def execute(self, agent_number):
-        if agent_number is None:
-            self._execute_all()
-        else:
-            self._execute(agent_number)
-
-    def _execute_all(self):
-        agent_statuses = self._agent_client.agents.get_agent_statuses(recurse=True)
-        for agent_status in sorted(agent_statuses, key=attrgetter('number')):
-            _print_agent_status(agent_status)
-
-    def _execute(self, agent_number):
-        agent_status = self._agent_client.agents.get_agent_status_by_number(
-            agent_number
-        )
-        _print_agent_status(agent_status)
-
-
-def _print_agent_status(agent_status):
-    print(f'Agent/{agent_status.number} (ID {agent_status.id})')
-    print(f'    logged: {agent_status.logged}')
-    if agent_status.logged:
-        print(f'    extension: {agent_status.extension}')
-        print(f'    context: {agent_status.context}')
-        print(f'    state interface: {agent_status.state_interface}')
+def main(argv: list[str] | None = None) -> int:
+    if argv is None:
+        argv = sys.argv[1:]
+    app = WazoAgentdCLI()
+    return app.run(_expand_deprecated_command_flag(argv))
 
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main(sys.argv[1:]))
