@@ -1,7 +1,10 @@
 # Copyright 2026 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from __future__ import annotations
+
 from argparse import Namespace
+from typing import Any
 from unittest.mock import Mock
 
 from wazo_agentd_cli.commands import (
@@ -70,6 +73,7 @@ class TestStatusCommand:
         extension: str = '',
         context: str = '',
         state_interface: str = '',
+        queues: list[dict[str, Any]] | None = None,
     ) -> Mock:
         return Mock(
             number=number,
@@ -78,10 +82,12 @@ class TestStatusCommand:
             extension=extension,
             context=context,
             state_interface=state_interface,
+            queues=queues or [],
         )
 
     def test_single_agent_returns_columns_and_row(self) -> None:
         app = Mock()
+        queues = [{'id': 1, 'name': 'support', 'logged': True, 'paused': False}]
         status = self._make_status(
             '1001',
             42,
@@ -89,6 +95,7 @@ class TestStatusCommand:
             extension='1001',
             context='default',
             state_interface='SIP/abc',
+            queues=queues,
         )
         app.client.agents.get_agent_status_by_number.return_value = status
         cmd = StatusCommand(app, None)
@@ -103,8 +110,9 @@ class TestStatusCommand:
             'extension',
             'context',
             'state_interface',
+            'queues',
         )
-        assert rows == [('1001', 42, True, '1001', 'default', 'SIP/abc')]
+        assert rows == [('1001', 42, True, '1001', 'default', 'SIP/abc', queues)]
 
     def test_not_logged_agent_has_empty_fields(self) -> None:
         app = Mock()
@@ -115,7 +123,7 @@ class TestStatusCommand:
 
         _, rows = cmd.take_action(parsed_args)
 
-        assert rows == [('1002', 43, False, '', '', '')]
+        assert rows == [('1002', 43, False, '', '', '', [])]
 
     def test_all_agents_sorted_by_number(self) -> None:
         app = Mock()

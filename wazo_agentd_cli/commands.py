@@ -125,6 +125,7 @@ class StatusCommand(Lister):
         'extension',
         'context',
         'state_interface',
+        'queues',
     )
 
     @property
@@ -157,6 +158,7 @@ class StatusCommand(Lister):
                 s.extension if s.logged else '',
                 s.context if s.logged else '',
                 s.state_interface if s.logged else '',
+                s.queues,
             )
             for s in statuses
         ]
