@@ -115,6 +115,36 @@ class UnpauseCommand(Command):
         self.app.client.agents.unpause_agent_by_number(parsed_args.agent_number)
 
 
+class QueueLoginCommand(Command):
+    """Login agent to queue"""
+
+    def get_parser(self, *args: Any, **kwargs: Any) -> argparse.ArgumentParser:
+        parser = super().get_parser(*args, **kwargs)
+        parser.add_argument('agent_id', type=int, help='Agent ID')
+        parser.add_argument('queue_id', type=int, help='Queue ID')
+        return parser
+
+    def take_action(self, parsed_args: argparse.Namespace) -> None:
+        self.app.client.agents.agent_login_to_queue(
+            parsed_args.agent_id, parsed_args.queue_id
+        )
+
+
+class QueueLogoffCommand(Command):
+    """Logoff agent from queue"""
+
+    def get_parser(self, *args: Any, **kwargs: Any) -> argparse.ArgumentParser:
+        parser = super().get_parser(*args, **kwargs)
+        parser.add_argument('agent_id', type=int, help='Agent ID')
+        parser.add_argument('queue_id', type=int, help='Queue ID')
+        return parser
+
+    def take_action(self, parsed_args: argparse.Namespace) -> None:
+        self.app.client.agents.agent_logoff_from_queue(
+            parsed_args.agent_id, parsed_args.queue_id
+        )
+
+
 class StatusCommand(Lister):
     """Get status of agent"""
 

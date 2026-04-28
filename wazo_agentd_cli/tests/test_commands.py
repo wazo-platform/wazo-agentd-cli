@@ -10,6 +10,8 @@ from unittest.mock import Mock
 from wazo_agentd_cli.commands import (
     LoginCommand,
     LogoffCommand,
+    QueueLoginCommand,
+    QueueLogoffCommand,
     RelogAllCommand,
     StatusCommand,
 )
@@ -62,6 +64,24 @@ class TestRelogAllCommand:
         app.client.agents.relog_all_agents.assert_called_once_with(
             recurse=True, timeout=None
         )
+
+
+class TestQueueLoginCommand:
+    def test_take_action(self) -> None:
+        app = Mock()
+        cmd = QueueLoginCommand(app, None)
+        parsed_args = Namespace(agent_id=42, queue_id=1)
+        cmd.take_action(parsed_args)
+        app.client.agents.agent_login_to_queue.assert_called_once_with(42, 1)
+
+
+class TestQueueLogoffCommand:
+    def test_take_action(self) -> None:
+        app = Mock()
+        cmd = QueueLogoffCommand(app, None)
+        parsed_args = Namespace(agent_id=42, queue_id=1)
+        cmd.take_action(parsed_args)
+        app.client.agents.agent_logoff_from_queue.assert_called_once_with(42, 1)
 
 
 class TestStatusCommand:

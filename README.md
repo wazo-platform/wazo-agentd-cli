@@ -24,6 +24,8 @@ Agent/1004 (ID 4)
 - `login <agent_number> <extension> <context>` - Login agent
 - `logoff <agent_number|all>` - Logoff agent or all agents
 - `relog all [--timeout <seconds>]` - Relog all currently logged agents
+- `queue login <agent_id> <queue_id>` - Login agent to queue
+- `queue logoff <agent_id> <queue_id>` - Logoff agent from queue
 - `pause <agent_number>` - Pause agent
 - `unpause <agent_number>` - Unpause agent
 - `status [<agent_number>]` - Get status of one or all agents
