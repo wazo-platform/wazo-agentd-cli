@@ -50,19 +50,28 @@ class TestRelogAllCommand:
     def test_with_timeout(self) -> None:
         app = Mock()
         cmd = RelogAllCommand(app, None)
-        parsed_args = Namespace(timeout=30)
+        parsed_args = Namespace(timeout=30, all_queues=False)
         cmd.take_action(parsed_args)
         app.client.agents.relog_all_agents.assert_called_once_with(
-            recurse=True, timeout=30
+            recurse=True, all_queues=False, timeout=30
         )
 
     def test_without_timeout(self) -> None:
         app = Mock()
         cmd = RelogAllCommand(app, None)
-        parsed_args = Namespace(timeout=None)
+        parsed_args = Namespace(timeout=None, all_queues=False)
         cmd.take_action(parsed_args)
         app.client.agents.relog_all_agents.assert_called_once_with(
-            recurse=True, timeout=None
+            recurse=True, all_queues=False, timeout=None
+        )
+
+    def test_with_all_queues(self) -> None:
+        app = Mock()
+        cmd = RelogAllCommand(app, None)
+        parsed_args = Namespace(timeout=None, all_queues=True)
+        cmd.take_action(parsed_args)
+        app.client.agents.relog_all_agents.assert_called_once_with(
+            recurse=True, all_queues=True, timeout=None
         )
 
 
