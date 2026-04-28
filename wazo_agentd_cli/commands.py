@@ -125,8 +125,8 @@ class QueueLoginCommand(Command):
         return parser
 
     def take_action(self, parsed_args: argparse.Namespace) -> None:
-        self.app.client.agents.user_agent_login_to_queue(
-            parsed_args.queue_id, agent_id=parsed_args.agent_id
+        self.app.client.agents.agent_login_to_queue(
+            parsed_args.agent_id, parsed_args.queue_id
         )
 
 
@@ -140,8 +140,8 @@ class QueueLogoffCommand(Command):
         return parser
 
     def take_action(self, parsed_args: argparse.Namespace) -> None:
-        self.app.client.agents.user_agent_logoff_from_queue(
-            parsed_args.queue_id, agent_id=parsed_args.agent_id
+        self.app.client.agents.agent_logoff_from_queue(
+            parsed_args.agent_id, parsed_args.queue_id
         )
 
 

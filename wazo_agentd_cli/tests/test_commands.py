@@ -72,9 +72,7 @@ class TestQueueLoginCommand:
         cmd = QueueLoginCommand(app, None)
         parsed_args = Namespace(agent_id=42, queue_id=1)
         cmd.take_action(parsed_args)
-        app.client.agents.user_agent_login_to_queue.assert_called_once_with(
-            1, agent_id=42
-        )
+        app.client.agents.agent_login_to_queue.assert_called_once_with(42, 1)
 
 
 class TestQueueLogoffCommand:
@@ -83,9 +81,7 @@ class TestQueueLogoffCommand:
         cmd = QueueLogoffCommand(app, None)
         parsed_args = Namespace(agent_id=42, queue_id=1)
         cmd.take_action(parsed_args)
-        app.client.agents.user_agent_logoff_from_queue.assert_called_once_with(
-            1, agent_id=42
-        )
+        app.client.agents.agent_logoff_from_queue.assert_called_once_with(42, 1)
 
 
 class TestStatusCommand:
