@@ -83,11 +83,19 @@ class RelogAllCommand(Command):
         parser.add_argument(
             '--timeout', type=int, default=None, help='Timeout in seconds'
         )
+        parser.add_argument(
+            '--all-queues',
+            action='store_true',
+            help='Relog each agent into all of its assigned queues, restoring '
+            'membership for queues the agent was previously logged off from',
+        )
         return parser
 
     def take_action(self, parsed_args: argparse.Namespace) -> None:
         self.app.client.agents.relog_all_agents(
-            recurse=True, timeout=parsed_args.timeout
+            recurse=True,
+            all_queues=parsed_args.all_queues,
+            timeout=parsed_args.timeout,
         )
 
 
