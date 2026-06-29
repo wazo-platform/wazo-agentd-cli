@@ -18,7 +18,7 @@ setup(
             'wazo-agentd-cli = wazo_agentd_cli.main:main',
         ],
         'cliff.formatter.list': [
-            'legacy = wazo_agentd_cli.formatters:LegacyAgentStatusFormatter',
+            'agentd_legacy = wazo_agentd_cli.formatters:LegacyAgentStatusFormatter',
         ],
         'wazo_agentd_cli.commands': [
             'add = wazo_agentd_cli.commands:AddAgentToQueueCommand',

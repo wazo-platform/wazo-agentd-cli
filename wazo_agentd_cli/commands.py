@@ -168,7 +168,7 @@ class StatusCommand(Lister):
 
     @property
     def formatter_default(self) -> str:
-        return 'legacy'
+        return 'agentd_legacy'
 
     def get_parser(self, *args: Any, **kwargs: Any) -> argparse.ArgumentParser:
         parser = super().get_parser(*args, **kwargs)
